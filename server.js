@@ -104,17 +104,22 @@ app.get("experiences/lookup", async (req, res) => {
   result = [];
   // Filter query results by distance
   if (location) {
-    for (const queryResult of resultDocs) {
+    resultDocs.forEach((doc) => {
+      // doc.data() is never undefined for query doc snapshots
+      const data = doc.data();
       if (
-        queryResult.location &&
-        utils.distance(Array(queryResult.location), location) <= radius
+        data.location &&
+        utils.distance(Array(data.location), location) <= radius
       ) {
-        result.push(queryResult);
+        result.push(data);
       }
-    }
+    });
+    res.status(200);
+    res.json({ experiences: result }).end();
+  } else {
+    res.status(404);
+    res.send("Location not specified, please enable GPS access").end();
   }
-  res.status(200);
-  res.json({ experiences: result }).end();
 });
 
 // Journeys
