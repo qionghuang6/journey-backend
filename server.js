@@ -1,5 +1,6 @@
-import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+const firebase = require("firebase/app");
+const firestore = require("firebase/firestore");
+const utils = require("./utils");
 
 // Add Express
 const express = require("express");
@@ -25,19 +26,57 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-const firebaseApp = initializeApp(firebaseConfig);
+const firebaseApp = firebase.initializeApp(firebaseConfig);
 
 // Initialize Cloud Firestore and get a reference to the service
-const db = getFirestore(app);
+const db = firestore.getFirestore(firebaseApp);
+
+// Different tables
+const userRef = firestore.collection(db, "user");
+const journeyRef = firestore.collection(db, "journey");
+const experienceRef = firestore.collection(db, "experience");
+const commentRef = firestore.collection(db, "comment");
+const adventureRef = firestore.collection(db, "adventure");
 
 // Create GET request
 app.get("/", (req, res) => {
-  res.send("Express on Vercel");
+  res.send("Backend is working!");
 });
 
-app.get("/user", (req, res) => {
+// User
+
+app.get("/user/lookup", (req, res) => {
+  const userId = req.body.user;
+
   res.json({ name: "philena" }).end();
 });
+
+// Experiences
+
+// Precondition: req.body.users must be an array of user IDs length > 0
+// req.body.radius must be > 0 and req.body.location must be a valid location
+// where req.body.tag == the tag requested from the experience
+// Returns: A list of experiences satisfying the conditions
+app.get("experiences/lookup", async (req, res) => {
+  const users = req.body.users ? req.body.users : null;
+  const radius = req.body.radius ? req.body.radius : null;
+  const location = req.body.location ? req.body.location : null;
+  const target_tag = req.body.tag ? req.body.tag : null;
+  // Get all results for the given users
+  const query = firestore.query(
+    experienceRef,
+    where("tag", "==", target_tag),
+    where("user", "in", users)
+  );
+  const resultDocs = await firestore.getDocs(query);
+  result = [];
+  // Filter query results by distance
+  for (const queryResult of resultDocs) {
+    //if (doc.location && Array(doc.location))
+  }
+});
+
+// Journeys
 
 // Initialize server
 app.listen(3001, () => {
