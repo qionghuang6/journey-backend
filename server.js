@@ -49,9 +49,9 @@ const experienceRef = await collection(db, "experience");
 const commentRef = await collection(db, "comment");
 const adventureRef = await collection(db, "adventure");
 
-// Create GET request
+// Default page
 app.get("/", async (req, res) => {
-  const userId = "test";
+  /*const userId = "test";
   const userQuery = await query(userRef, where("id", "==", userId));
   const resultDocs = await getDocs(userQuery);
   assert(
@@ -63,15 +63,17 @@ app.get("/", async (req, res) => {
     console.log(doc.id, " => ", doc.data());
     res.status(200);
     res.json(doc.data()).end();
-  });
+  });*/
+  const userId = "test2";
+  const userName = "Jod";
 });
 
-// User
+// Users
 
-// Body expected to have a user field with the user's ID.
+// Query expected to have a user field with the user's ID.
 // Returns the json object of the user
 app.get("/user/lookup", async (req, res) => {
-  const userId = req.body.user ? req.body.user : null;
+  const userId = req.query.user ? req.query.user : null;
   if (userId === null) {
     res.status(404);
     res.send("userId not specified").end();
@@ -100,18 +102,41 @@ app.get("/user/lookup", async (req, res) => {
   }
 });
 
+// Adds a user with the given name, id (Google OAUTH ID). Optionally takes a list of friends and a profile picture url
+app.post("/user/add", async (req, res) => {
+  const name = req.body.name;
+  const id = req.body.id;
+  const picture = req.body.picture ? req.body.picture : null;
+  const friends = req.body.friends ? req.body.friends : null;
+  try {
+    const docRef = await addDoc(userRef, {
+      name: name,
+      id: id,
+      picture: picture,
+      friends: friends,
+    });
+    console.log("New user added with ID: ", docRef.id);
+    res.status(200);
+    res.send("User successfully added with ID: ", docRef.id).end();
+  } catch (e) {
+    res.status(500);
+    res.send("Error adding user: ", e).end();
+    console.error("Error adding user: ", e);
+  }
+});
+
 // Experiences
 
 // Looks up and returns all of the experiences belonging to the specified users in a given distance from the given location
-// Precondition: req.body.users must be an array of user IDs length > 0
-// req.body.radius must be > 0 and req.body.location must be a valid location
-// where req.body.tag == the tag requested from the experience
+// Precondition: req.query.users must be an array of user IDs length > 0
+// req.query.radius must be > 0 and req.query.location must be a valid location
+// where req.query.tag == the tag requested from the experience
 // Returns: A list of experiences satisfying the conditions
 app.get("experiences/radar", async (req, res) => {
-  const users = req.body.users ? req.body.users : null;
-  const radius = req.body.radius ? req.body.radius : null;
-  const location = req.body.location ? req.body.location : null;
-  const target_tag = req.body.tag ? req.body.tag : null;
+  const users = req.query.users ? req.query.users : null;
+  const radius = req.query.radius ? req.query.radius : null;
+  const location = req.query.location ? req.query.location : null;
+  const target_tag = req.query.tag ? req.query.tag : null;
   // Get all results for the given users
   try {
     const query = query(
@@ -149,7 +174,7 @@ app.get("experiences/radar", async (req, res) => {
 // Looks up and returns ALL experiences with the parent id matching the given adventure id
 // Requires a id specifying the adventure id
 app.get("experiences/lookup", async (req, res) => {
-  const parentId = req.body.id;
+  const parentId = req.query.id;
   try {
     const query = query(experienceRef, where("parent", "==", parentId));
     const resultDocs = await getDocs(query);
@@ -188,7 +213,7 @@ app.post("experiences/add", async (req, res) => {
       tag: tag,
       timestamp: timestamp,
     });
-    console.log("New experience written with ID: ", docRef.id);
+    console.log("New experience added with ID: ", docRef.id);
     res.status(200);
     res.send("Experience successfully added with ID: ", docRef.id).end();
   } catch (e) {
@@ -199,6 +224,8 @@ app.post("experiences/add", async (req, res) => {
 });
 
 // Journeys
+
+// Adventures
 
 // Initialize server
 app.listen(3001, () => {
