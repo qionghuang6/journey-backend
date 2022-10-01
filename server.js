@@ -1,10 +1,20 @@
-const firebase = require("firebase/app");
-const firestore = require("firebase/firestore");
-const utils = require("./utils");
+import { initializeApp } from "firebase/app";
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  getDoc,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
+import { distance, assert } from "./utils.js";
+import express from "express";
+import cors from "cors";
 
 // Add Express
-const express = require("express");
-var cors = require("cors");
+//const express = require("express");
+//var cors = require("cors");
 
 // Initialize Express
 const app = express();
@@ -26,27 +36,27 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-const firebaseApp = firebase.initializeApp(firebaseConfig);
+const firebaseApp = await initializeApp(firebaseConfig);
 
 // Initialize Cloud Firestore and get a reference to the service
-const db = firestore.getFirestore(firebaseApp);
+const db = await getFirestore(firebaseApp);
 
 // Different tables
-const userRef = firestore.collection(db, "user");
-const journeyRef = firestore.collection(db, "journey");
-const experienceRef = firestore.collection(db, "experience");
-const commentRef = firestore.collection(db, "comment");
-const adventureRef = firestore.collection(db, "adventure");
+const userRef = await collection(db, "user");
+const journeyRef = await collection(db, "journey");
+const experienceRef = await collection(db, "experience");
+const commentRef = await collection(db, "comment");
+const adventureRef = await collection(db, "adventure");
 
 // Create GET request
 app.get("/", async (req, res) => {
   const userId = "test";
-  const query = firestore.query(userRef, firestore.where("id", "==", userId));
-  const resultDocs = await firestore.getDocs(query);
-  //utils.assert(
-  //  resultDocs.length === 1,
-  //  "Too many users returned for a given userId"
-  //);
+  const userQuery = await query(userRef, where("id", "==", userId));
+  const resultDocs = await getDocs(userQuery);
+  assert(
+    Array(resultDocs).length === 1,
+    "Too many users returned for a given userId"
+  );
   resultDocs.forEach((doc) => {
     // doc.data() is never undefined for query doc snapshots
     console.log(doc.id, " => ", doc.data());
@@ -65,12 +75,12 @@ app.get("/user/lookup", async (req, res) => {
     res.status(404);
     res.send("userId not specified").end();
   }
-  const query = firestore.query(userRef, firestore.where("id", "==", userId));
-  const resultDocs = await firestore.getDocs(query);
-  //utils.assert(
-  //  resultDocs.length === 1,
-  //  "Too many users returned for a given userId"
-  //);
+  const userQuery = query(userRef, where("id", "==", userId));
+  const resultDocs = await getDocs(userQuery);
+  assert(
+    Array(resultDocs).length === 1,
+    "Too many users returned for a given userId"
+  );
   if (resultDocs.length != 1) {
     res.status(500);
     res.send("Too many users returned for a given userId").end();
@@ -95,22 +105,19 @@ app.get("experiences/lookup", async (req, res) => {
   const location = req.body.location ? req.body.location : null;
   const target_tag = req.body.tag ? req.body.tag : null;
   // Get all results for the given users
-  const query = firestore.query(
+  const query = query(
     experienceRef,
     where("tag", "==", target_tag),
     where("user", "in", users)
   );
-  const resultDocs = await firestore.getDocs(query);
+  const resultDocs = await getDocs(query);
   result = [];
   // Filter query results by distance
   if (location) {
     resultDocs.forEach((doc) => {
       // doc.data() is never undefined for query doc snapshots
       const data = doc.data();
-      if (
-        data.location &&
-        utils.distance(Array(data.location), location) <= radius
-      ) {
+      if (data.location && distance(Array(data.location), location) <= radius) {
         result.push(data);
       }
     });
@@ -128,6 +135,3 @@ app.get("experiences/lookup", async (req, res) => {
 app.listen(3001, () => {
   console.log("Running on port 3001.");
 });
-
-// Export the Express API
-module.exports = app;

@@ -1,5 +1,5 @@
 // Calculates the distance between two points [lat lng]
-function distance(pointOne, pointTwo) {
+export function distance(pointOne, pointTwo) {
   assert(
     Array.isArray(pointOne) &&
       Array.isArray(pointTwo) &&
@@ -13,7 +13,7 @@ function distance(pointOne, pointTwo) {
   );
 }
 
-function assert(condition, message) {
+export function assert(condition, message) {
   if (!condition) {
     throw message || "Assertion failed";
   }
