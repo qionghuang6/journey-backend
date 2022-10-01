@@ -39,16 +39,48 @@ const commentRef = firestore.collection(db, "comment");
 const adventureRef = firestore.collection(db, "adventure");
 
 // Create GET request
-app.get("/", (req, res) => {
-  res.send("Backend is working!");
+app.get("/", async (req, res) => {
+  const userId = "test";
+  const query = firestore.query(userRef, firestore.where("id", "==", userId));
+  const resultDocs = await firestore.getDocs(query);
+  //utils.assert(
+  //  resultDocs.length === 1,
+  //  "Too many users returned for a given userId"
+  //);
+  resultDocs.forEach((doc) => {
+    // doc.data() is never undefined for query doc snapshots
+    console.log(doc.id, " => ", doc.data());
+    res.status(200);
+    res.json(doc.data()).end();
+  });
 });
 
 // User
 
-app.get("/user/lookup", (req, res) => {
-  const userId = req.body.user;
-
-  res.json({ name: "philena" }).end();
+// Body expected to have a user field with the user's ID.
+// Returns the json object of the user
+app.get("/user/lookup", async (req, res) => {
+  const userId = req.body.user ? req.body.user : null;
+  if (userId === null) {
+    res.status(404);
+    res.send("userId not specified").end();
+  }
+  const query = firestore.query(userRef, firestore.where("id", "==", userId));
+  const resultDocs = await firestore.getDocs(query);
+  //utils.assert(
+  //  resultDocs.length === 1,
+  //  "Too many users returned for a given userId"
+  //);
+  if (resultDocs.length != 1) {
+    res.status(500);
+    res.send("Too many users returned for a given userId").end();
+  } else {
+    resultDocs.forEach((doc) => {
+      // doc.data() is never undefined for query doc snapshots
+      res.status(200);
+      res.json(doc.data()).end();
+    });
+  }
 });
 
 // Experiences
@@ -71,9 +103,18 @@ app.get("experiences/lookup", async (req, res) => {
   const resultDocs = await firestore.getDocs(query);
   result = [];
   // Filter query results by distance
-  for (const queryResult of resultDocs) {
-    //if (doc.location && Array(doc.location))
+  if (location) {
+    for (const queryResult of resultDocs) {
+      if (
+        queryResult.location &&
+        utils.distance(Array(queryResult.location), location) <= radius
+      ) {
+        result.push(queryResult);
+      }
+    }
   }
+  res.status(200);
+  res.json({ experiences: result }).end();
 });
 
 // Journeys
