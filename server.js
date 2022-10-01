@@ -7,6 +7,7 @@ import {
   query,
   where,
   getDocs,
+  Timestamp,
 } from "firebase/firestore";
 import { distance, assert } from "./utils.js";
 import express from "express";
@@ -95,11 +96,12 @@ app.get("/user/lookup", async (req, res) => {
 
 // Experiences
 
+// Looks up and returns all of the experiences belonging to the specified users in a given distance from the given location
 // Precondition: req.body.users must be an array of user IDs length > 0
 // req.body.radius must be > 0 and req.body.location must be a valid location
 // where req.body.tag == the tag requested from the experience
 // Returns: A list of experiences satisfying the conditions
-app.get("experiences/lookup", async (req, res) => {
+app.get("experiences/radar", async (req, res) => {
   const users = req.body.users ? req.body.users : null;
   const radius = req.body.radius ? req.body.radius : null;
   const location = req.body.location ? req.body.location : null;
@@ -126,6 +128,58 @@ app.get("experiences/lookup", async (req, res) => {
   } else {
     res.status(404);
     res.send("Location not specified, please enable GPS access").end();
+  }
+});
+
+// Looks up and returns ALL experiences with the parent id matching the given adventure id
+// Requires a id specifying the adventure id
+app.get("experiences/lookup", async (req, res) => {
+  const parentId = req.body.id;
+  try {
+    const query = query(experienceRef, where("parent", "==", parentId));
+    const resultDocs = await getDocs(query);
+    result = [];
+    resultDocs.forEach((doc) => {
+      result.push(doc.data);
+    });
+    res.status(200);
+    res.json({ experiences: result }).end();
+    console.log(
+      "Experiences successfully looked up with parent id: ",
+      parentId
+    );
+  } catch (e) {
+    res.status(404);
+    res.send("Error looking up experiences: ", e).end();
+    console.log("Error looking up experiences: ", e);
+  }
+});
+
+// Adds a new experience to the db
+// Requires a location name (for looking up in Google places API later), post id, picture urls, rating, and a tag
+app.post("experiences/add", async (req, res) => {
+  const name = req.body.name;
+  const parentId = req.body.parent;
+  const pictures = req.body.pictures;
+  const rating = req.body.rating;
+  const tag = req.body.tag;
+  const timestamp = Timestamp.now();
+  try {
+    const docRef = await addDoc(collection(db, "experience"), {
+      name: name,
+      parent: parentId,
+      pictures: pictures,
+      rating: rating,
+      tag: tag,
+      timestamp: timestamp,
+    });
+    console.log("New experience written with ID: ", docRef.id);
+    res.status(200);
+    res.send("Experience successfully added with ID: ", docRef.id).end();
+  } catch (e) {
+    res.status(500);
+    res.send("Error adding experience: ", e).end();
+    console.error("Error adding experience: ", e);
   }
 });
 
