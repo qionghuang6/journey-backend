@@ -76,21 +76,27 @@ app.get("/user/lookup", async (req, res) => {
     res.status(404);
     res.send("userId not specified").end();
   }
-  const userQuery = query(userRef, where("id", "==", userId));
-  const resultDocs = await getDocs(userQuery);
-  assert(
-    Array(resultDocs).length === 1,
-    "Too many users returned for a given userId"
-  );
-  if (resultDocs.length != 1) {
-    res.status(500);
-    res.send("Too many users returned for a given userId").end();
-  } else {
-    resultDocs.forEach((doc) => {
-      // doc.data() is never undefined for query doc snapshots
-      res.status(200);
-      res.json(doc.data()).end();
-    });
+  try {
+    const userQuery = query(userRef, where("id", "==", userId));
+    const resultDocs = await getDocs(userQuery);
+    assert(
+      Array(resultDocs).length === 1,
+      "Too many users returned for a given userId"
+    );
+    if (resultDocs.length != 1) {
+      res.status(500);
+      res.send("Too many users returned for a given userId").end();
+    } else {
+      resultDocs.forEach((doc) => {
+        // doc.data() is never undefined for query doc snapshots
+        res.status(200);
+        res.json(doc.data()).end();
+      });
+    }
+  } catch (e) {
+    res.status(404);
+    res.send("Error finding user ", req.body.user, ": ", e).end();
+    console.log("Error finding user ", req.body.user, ": ", e);
   }
 });
 
@@ -107,27 +113,36 @@ app.get("experiences/radar", async (req, res) => {
   const location = req.body.location ? req.body.location : null;
   const target_tag = req.body.tag ? req.body.tag : null;
   // Get all results for the given users
-  const query = query(
-    experienceRef,
-    where("tag", "==", target_tag),
-    where("user", "in", users)
-  );
-  const resultDocs = await getDocs(query);
-  result = [];
-  // Filter query results by distance
-  if (location) {
-    resultDocs.forEach((doc) => {
-      // doc.data() is never undefined for query doc snapshots
-      const data = doc.data();
-      if (data.location && distance(Array(data.location), location) <= radius) {
-        result.push(data);
-      }
-    });
-    res.status(200);
-    res.json({ experiences: result }).end();
-  } else {
+  try {
+    const query = query(
+      experienceRef,
+      where("tag", "==", target_tag),
+      where("user", "in", users)
+    );
+    const resultDocs = await getDocs(query);
+    result = [];
+    // Filter query results by distance
+    if (location) {
+      resultDocs.forEach((doc) => {
+        // doc.data() is never undefined for query doc snapshots
+        const data = doc.data();
+        if (
+          data.location &&
+          distance(Array(data.location), location) <= radius
+        ) {
+          result.push(data);
+        }
+      });
+      res.status(200);
+      res.json({ experiences: result }).end();
+    } else {
+      res.status(404);
+      res.send("Location not specified, please enable GPS access").end();
+    }
+  } catch (e) {
     res.status(404);
-    res.send("Location not specified, please enable GPS access").end();
+    res.send("Error finding experiences using radar: ", e).end();
+    console.log("Error finding experiences using radar: ", e);
   }
 });
 
