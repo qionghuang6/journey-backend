@@ -259,6 +259,6 @@ app.post("/api/experiences/add", async (req, res, next) => {
 // Adventures
 
 // Initialize server
-app.listen(3001, () => {
+app.listen(process.env.PORT || 3001, () => {
   console.log("Running on port 3001.");
 });
