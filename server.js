@@ -92,6 +92,7 @@ app.get("/api/user/lookup", async (req, res, next) => {
   }
 });
 
+// NOT WORKING
 app.post("/api/user/addFriend", async (req, res, next) => {
   try {
     const userId = req.body.user;
@@ -136,8 +137,7 @@ app.post("/api/user/add", async (req, res, next) => {
       { merge: true }
     );
     console.log("New user added with ID: ", docRef.id);
-    res.status(200);
-    res.send("User successfully added with ID: ", docRef.id).end();
+    res.status(200).end();
   } catch (e) {
     next(e);
     console.error("Error adding user: ", e);
@@ -240,8 +240,7 @@ app.post("/api/experiences/add", async (req, res, next) => {
       timestamp: timestamp,
     });
     console.log("New experience added with ID: ", docRef.id);
-    res.status(200);
-    res.send("Experience successfully added with ID: ", docRef.id).end();
+    res.status(200).end();
   } catch (e) {
     next(e);
     console.error("Error adding experience: ", e);
