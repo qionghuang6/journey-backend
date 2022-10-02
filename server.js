@@ -360,19 +360,20 @@ app.get("/api/journeys/lookup", async (req, res, next) => {
 
 // Adventures
 
-// Requires an author id, a given id (title for now), and an array of [lng, lat] coordinates for routing
+// Requires an author id, a given id (title for now), a firebase adventure ID, and an array of [lng, lat] coordinates for routing
 app.post("/api/adventures/add", async (req, res, next) => {
   try {
+    const adventureRef = doc(adventureRef, req.body.adventureId);
     const author = req.body.author;
-    const id = req.body.id;
+    const title = req.body.title;
     const likes = 0;
     const route = req.body.route;
     const timestamp = Timestamp.now();
-    const docRef = await addDoc(
+    const docRef = await setDoc(
       adventureRef,
       {
         author: author,
-        id: id,
+        title: title,
         likes: likes,
         route: route,
         timestamp: timestamp,
@@ -389,71 +390,68 @@ app.post("/api/adventures/add", async (req, res, next) => {
   }
 });
 
-// Need adventureID
+// Need the firebase adventure ID
 app.post("/api/adventures/like", async (req, res, next) => {
   try {
     const adventureId = req.body.id;
-    const adventureQuery = query(userRef, where("id", "==", adventureId));
-    const resultDocs = await getDocs(adventureQuery);
-    assert(
-      Array(resultDocs).length === 1,
-      "Too many adventures returned for a given adventureId"
-    );
-    resultDocs.forEach((doc) => {
-      // doc.data() is never undefined for query doc snapshots
-      updateDoc(doc, {
-        likes: increment(1),
-      });
-      res.status(201).end();
+    const adventureDoc = doc(adventureRef, adventureId);
+    updateDoc(adventureDoc, {
+      likes: increment(1),
     });
+    res.status(201).end();
   } catch (e) {
     next(e);
     console.error("Error liking an adventure: ", e);
   }
 });
 
-// Need adventureID
+// Need the firebase adventure ID
 app.post("/api/adventures/unlike", async (req, res, next) => {
   try {
     const adventureId = req.body.id;
-    const adventureQuery = query(userRef, where("id", "==", adventureId));
-    const resultDocs = await getDocs(adventureQuery);
-    assert(
-      Array(resultDocs).length === 1,
-      "Too many adventures returned for a given adventureId"
-    );
-    resultDocs.forEach((doc) => {
-      // doc.data() is never undefined for query doc snapshots
-      updateDoc(doc, {
-        likes: increment(-1),
-      });
-      res.status(201).end();
+    const adventureDoc = doc(adventureRef, adventureId);
+    updateDoc(adventureDoc, {
+      likes: increment(-1),
     });
+    res.status(201).end();
   } catch (e) {
     next(e);
     console.error("Error unliking an adventure: ", e);
   }
 });
 
-// Requires the adventure author id and the adventure id
+// Requires the adventure author id and the adventure title
+// Returns a json with the data and the firebase adventure ID
 app.get("/api/adventures/lookup", async (req, res, next) => {
   try {
     const author = req.query.author;
-    const id = req.query.id;
+    const title = req.query.title;
     const resultDoc = await getDocs(
       adventureRef,
       where("author", "==", author),
-      where("id", "==", id)
+      where("title", "==", title)
     );
     resultDoc.forEach((doc) => {
       // doc.data() is never undefined for query doc snapshots
       console.log("Adventure retrieved with id", doc.id);
       res.status(200);
-      res.json(doc.data()).end();
+      res.json({ data: doc.data(), id: doc.id }).end();
     });
   } catch (e) {
     next(e);
     console.error("Error getting adventure: ", e);
+  }
+});
+
+// Generates a new firebase adventure doc id for later use
+app.get("/api/adventures/generate", async (req, res, next) => {
+  try {
+    const docRef = doc(adventureRef);
+    res.status(200);
+    res.json({ id: docRef.id }).end();
+  } catch (e) {
+    next(e);
+    console.error("Error generating adventure: ", e);
   }
 });
 
