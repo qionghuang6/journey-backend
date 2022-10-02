@@ -52,7 +52,7 @@ const commentRef = await collection(db, "comment");
 const adventureRef = await collection(db, "adventure");
 
 // Default page
-app.get("/", async (req, res) => {
+app.get("/", async (req, res, next) => {
   try {
     const userId = "test_user";
     //const userQuery = await query(userRef, where("id", "==", userId));
@@ -65,6 +65,7 @@ app.get("/", async (req, res) => {
     //const userId = "test2";
     //const userName = "Jod";
   } catch (e) {
+    next(e);
     console.log("Error: ", e);
   }
 });
@@ -73,7 +74,7 @@ app.get("/", async (req, res) => {
 
 // Query expected to have a user field with the user's ID.
 // Returns the json object of the user
-app.get("/api/user/lookup", async (req, res) => {
+app.get("/api/user/lookup", async (req, res, next) => {
   try {
     const userId = req.query.user;
     assert(userId, "UserId does not exist");
@@ -85,13 +86,12 @@ app.get("/api/user/lookup", async (req, res) => {
       res.json(doc.data()).end();
     });
   } catch (e) {
-    res.status(404);
-    res.send("Error finding user ", req.query.user, ": ", e).end();
+    next(e);
     console.error("Error finding user ", req.query.user, ": ", e);
   }
 });
 
-app.post("/api/user/addFriend", async (req, res) => {
+app.post("/api/user/addFriend", async (req, res, next) => {
   try {
     const userId = req.body.user;
     const userQuery = query(userRef, where("id", "==", userId));
@@ -111,14 +111,13 @@ app.post("/api/user/addFriend", async (req, res) => {
       });
     }
   } catch (e) {
-    res.status(404);
-    res.send("Error finding user ", req.body.user, ": ", e).end();
-    console.error("Error finding user ", req.body.user, ": ", e);
+    next(e);
+    console.error("Error finding user: ", e);
   }
 });
 
 // Adds a user with the given name, id (Google OAUTH ID). Optionally takes a list of friends and a profile picture url
-app.post("/api/user/add", async (req, res) => {
+app.post("/api/user/add", async (req, res, next) => {
   try {
     const name = req.body.name;
     const id = req.body.id;
@@ -139,8 +138,7 @@ app.post("/api/user/add", async (req, res) => {
     res.status(200);
     res.send("User successfully added with ID: ", docRef.id).end();
   } catch (e) {
-    res.status(500);
-    res.send("Error adding user: ", e).end();
+    next(e);
     console.error("Error adding user: ", e);
   }
 });
@@ -152,19 +150,19 @@ app.post("/api/user/add", async (req, res) => {
 // req.query.radius must be > 0 and req.query.location must be a valid location
 // where req.query.tag == the tag requested from the experience
 // Returns: A list of experiences satisfying the conditions
-app.get("/api/experiences/radar", async (req, res) => {
+app.get("/api/experiences/radar", async (req, res, next) => {
   try {
     const users = req.query.users ? req.query.users : null;
     const radius = req.query.radius ? req.query.radius : null;
     const location = req.query.location ? req.query.location : null;
     const target_tag = req.query.tag ? req.query.tag : null;
     // Get all results for the given users
-    const query = query(
+    const radarQuery = query(
       experienceRef,
       where("tag", "==", target_tag),
       where("user", "in", users)
     );
-    const resultDocs = await getDocs(query);
+    const resultDocs = await getDocs(radarQuery);
     result = [];
     // Filter query results by distance
     if (location) {
@@ -182,20 +180,17 @@ app.get("/api/experiences/radar", async (req, res) => {
       res.json({ experiences: result }).end();
       console.log("Successfully returned radar query");
     } else {
-      res.status(404);
-      res.send("Location not specified, please enable GPS access").end();
-      console.error("Location not specified, please enable GPS access");
+      throw new Error("Location not specified, please enable GPS access");
     }
   } catch (e) {
-    res.status(500);
-    res.send("Error finding experiences using radar: ", e).end();
+    next(e);
     console.error("Error finding experiences using radar: ", e);
   }
 });
 
 // Looks up and returns ALL experiences with the parent id matching the given adventure id
 // Requires a id specifying the adventure id
-app.get("/api/experiences/lookup", async (req, res) => {
+app.get("/api/experiences/lookup", async (req, res, next) => {
   const parentId = req.query.id;
   try {
     const query = query(experienceRef, where("parent", "==", parentId));
@@ -211,15 +206,14 @@ app.get("/api/experiences/lookup", async (req, res) => {
       parentId
     );
   } catch (e) {
-    res.status(404);
-    res.send("Error looking up experiences: ", e).end();
+    next(e);
     console.error("Error looking up experiences: ", e);
   }
 });
 
 // Adds a new experience to the db
 // Requires a location name (for looking up in Google places API later), post id, picture urls, rating, and a tag
-app.post("/api/experiences/add", async (req, res) => {
+app.post("/api/experiences/add", async (req, res, next) => {
   const name = req.body.name;
   const parentId = req.body.parent;
   const pictures = req.body.pictures;
@@ -239,8 +233,7 @@ app.post("/api/experiences/add", async (req, res) => {
     res.status(200);
     res.send("Experience successfully added with ID: ", docRef.id).end();
   } catch (e) {
-    res.status(500);
-    res.send("Error adding experience: ", e).end();
+    next(e);
     console.error("Error adding experience: ", e);
   }
 });
