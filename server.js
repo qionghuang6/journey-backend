@@ -160,13 +160,14 @@ app.get("/api/experiences/radar", async (req, res, next) => {
     );
     const latitude = req.query.latitude ? Number(req.query.latitude) : null;
     const longitude = req.query.longitude ? Number(req.query.longitude) : null;
+    console.log("USERS", users);
     const radius = req.query.radius ? Number(req.query.radius) : 0;
     const target_tag = req.query.tag ? req.query.tag : null;
     // Get all results for the given users
     const radarQuery = query(
       experienceRef,
       where("tag", "==", target_tag),
-      where("user", "in", users)
+      // where("user", "array-contains-any", users)
     );
     const resultDocs = await getDocs(radarQuery);
     const result = [];
@@ -175,6 +176,7 @@ app.get("/api/experiences/radar", async (req, res, next) => {
       resultDocs.forEach((doc) => {
         // doc.data() is never undefined for query doc snapshots
         const data = doc.data();
+        console.log("DATAAA", data);
         if (
           radius === 0 ||
           (data.location &&
@@ -188,6 +190,7 @@ app.get("/api/experiences/radar", async (req, res, next) => {
       });
       res.status(200);
       res.json({ experiences: result }).end();
+      console.log("RESULT", result);
       console.log("Successfully returned radar query");
     } else {
       throw new Error("Location not specified, please enable GPS access");
@@ -227,21 +230,25 @@ app.post("/api/experiences/add", async (req, res, next) => {
   try {
     const name = req.body.name;
     const parentId = req.body.parent;
-    const pictures = req.body.pictures;
+    // const pictures = req.body.pictures;
+    const latitude = req.body.latitude;
+    const longitude = req.body.longitude;
     const rating = req.body.rating;
     const tag = req.body.tag;
     const timestamp = Timestamp.now();
     const docRef = await addDoc(collection(db, "experience"), {
       name: name,
       parent: parentId,
-      pictures: pictures,
+      // pictures: pictures,
+      latitude: latitude,
+      longitude: longitude,
       rating: rating,
       tag: tag,
       timestamp: timestamp,
     });
     console.log("New experience added with ID: ", docRef.id);
     res.status(200);
-    res.send("Experience successfully added with ID: ", docRef.id).end();
+    // res.send("Experience successfully added with ID: ", docRef.id).end();
   } catch (e) {
     next(e);
     console.error("Error adding experience: ", e);
