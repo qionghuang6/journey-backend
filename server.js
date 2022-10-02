@@ -13,6 +13,7 @@ import {
   updateDoc,
   arrayUnion,
   increment,
+  limit,
 } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { distance, assert } from "./utils.js";
@@ -217,8 +218,9 @@ app.get("/api/experiences/radar", async (req, res, next) => {
     // Get all results for the given users
     const radarQuery = query(
       experienceRef,
-      where("tag", "==", target_tag)
-      // where("user", "array-contains-any", users)
+      where("tag", "==", target_tag),
+      limit(25),
+      where("user", "array-contains-any", users)
     );
     const resultDocs = await getDocs(radarQuery);
     const result = [];
@@ -313,20 +315,22 @@ app.post("/api/experiences/add", async (req, res, next) => {
 
 // Journeys
 
-// Requires a parent adventure ID (returned as the id from the /api/adventures/add endpoint) and an array of picture dataURLs as a json array
+// Requires a parent adventure ID (returned as the id from the /api/adventures/add endpoint), the distance traveled, the time taken (in seconds as a JS Date object), and an array of picture dataURLs as a json array
 app.post("/api/journeys/add", async (req, res, next) => {
   try {
     const parent = req.body.parent;
     const pictures = req.body.pictures;
     // Distance and time are fluff features, so if we have the time to implement them we can later.
-    //const distance = req.body.distance;
-    //const time = req.body.time;
+    const distance = req.body.distance;
+    const time = req.body.time;
     const timestamp = Timestamp.now();
     const docRef = await addDoc(
       journeyRef,
       {
         parent: parent,
         pictures: pictures,
+        distance: distance,
+        time: time,
         timestamp: timestamp,
       },
       { merge: true }
@@ -440,6 +444,22 @@ app.get("/api/adventures/lookup", async (req, res, next) => {
   } catch (e) {
     next(e);
     console.error("Error getting adventure: ", e);
+  }
+});
+
+app.get("/api/adventures/getall", async (req, res, next) => {
+  try {
+    const resultDoc = await getDocs(adventureRef);
+    const results = [];
+    resultDoc.forEach((doc) => {
+      // doc.data() is never undefined for query doc snapshots
+      console.log("Adventure retrieved with id", doc.id);
+      res.status(200);
+      res.json({ data: doc.data(), id: doc.id });
+    });
+  } catch (e) {
+    next(e);
+    console.error("Error getting all adventures: ", e);
   }
 });
 
