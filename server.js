@@ -127,11 +127,12 @@ app.post("/api/user/logout", (req, res) => {
     });
 });
 
-// Adds a user with the given name and email. Optionally takes a list of friends and a profile picture url
+// Adds a user with the given name, email, and password. Optionally takes a list of friends and a profile picture url
 app.post("/api/user/add", async (req, res, next) => {
   try {
     const name = req.body.name;
     const email = req.body.email;
+    const password = req.body.password;
     const picture = req.body.picture ? req.body.picture : null;
     const friends = req.body.friends ? req.body.friends : null;
     const doc = doc(db, "user");
