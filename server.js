@@ -218,8 +218,7 @@ app.get("/api/experiences/radar", async (req, res, next) => {
     const radarQuery = query(
       experienceRef,
       where("tag", "==", target_tag),
-      limit(25),
-      where("user", "array-contains-any", users)
+      limit(25)
     );
     const resultDocs = await getDocs(radarQuery);
     const result = [];
