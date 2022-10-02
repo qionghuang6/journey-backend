@@ -157,7 +157,7 @@ app.post("/api/user/add", async (req, res, next) => {
         res.send(JSON.stringify({ id: docRef.id })).end();
       })
       .catch((error) => {
-        throw new Error(error);
+        next(error);
       });
   } catch (e) {
     next(e);
