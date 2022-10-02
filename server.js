@@ -9,6 +9,7 @@ import {
   getDocs,
   Timestamp,
   doc,
+  setDoc,
 } from "firebase/firestore";
 import { distance, assert } from "./utils.js";
 import express from "express";
@@ -75,6 +76,7 @@ app.get("/", async (req, res) => {
 app.get("/user/lookup", async (req, res) => {
   try {
     const userId = req.query.user;
+    assert(userId, "UserId does not exist");
     const userQuery = query(userRef, where("id", "==", userId));
     const resultDoc = await getDocs(userQuery);
     resultDoc.forEach((doc) => {
@@ -85,7 +87,7 @@ app.get("/user/lookup", async (req, res) => {
   } catch (e) {
     res.status(404);
     res.send("Error finding user ", req.query.user, ": ", e).end();
-    console.log("Error finding user ", req.query.user, ": ", e);
+    console.error("Error finding user ", req.query.user, ": ", e);
   }
 });
 
@@ -111,23 +113,28 @@ app.post("/user/addFriend", async (req, res) => {
   } catch (e) {
     res.status(404);
     res.send("Error finding user ", req.body.user, ": ", e).end();
-    console.log("Error finding user ", req.body.user, ": ", e);
+    console.error("Error finding user ", req.body.user, ": ", e);
   }
 });
 
 // Adds a user with the given name, id (Google OAUTH ID). Optionally takes a list of friends and a profile picture url
 app.post("/user/add", async (req, res) => {
-  const name = req.body.name;
-  const id = req.body.id;
-  const picture = req.body.picture ? req.body.picture : null;
-  const friends = req.body.friends ? req.body.friends : null;
   try {
-    const docRef = await addDoc(userRef, {
-      name: name,
-      id: id,
-      picture: picture,
-      friends: friends,
-    });
+    const name = req.body.name;
+    const id = req.body.id;
+    const picture = req.body.picture ? req.body.picture : null;
+    const friends = req.body.friends ? req.body.friends : null;
+    const doc = doc(db, "user");
+    const docRef = await addDoc(
+      userRef,
+      {
+        name: name,
+        id: id,
+        picture: picture,
+        friends: friends,
+      },
+      { merge: true }
+    );
     console.log("New user added with ID: ", docRef.id);
     res.status(200);
     res.send("User successfully added with ID: ", docRef.id).end();
@@ -146,12 +153,12 @@ app.post("/user/add", async (req, res) => {
 // where req.query.tag == the tag requested from the experience
 // Returns: A list of experiences satisfying the conditions
 app.get("experiences/radar", async (req, res) => {
-  const users = req.query.users ? req.query.users : null;
-  const radius = req.query.radius ? req.query.radius : null;
-  const location = req.query.location ? req.query.location : null;
-  const target_tag = req.query.tag ? req.query.tag : null;
-  // Get all results for the given users
   try {
+    const users = req.query.users ? req.query.users : null;
+    const radius = req.query.radius ? req.query.radius : null;
+    const location = req.query.location ? req.query.location : null;
+    const target_tag = req.query.tag ? req.query.tag : null;
+    // Get all results for the given users
     const query = query(
       experienceRef,
       where("tag", "==", target_tag),
@@ -176,11 +183,12 @@ app.get("experiences/radar", async (req, res) => {
     } else {
       res.status(404);
       res.send("Location not specified, please enable GPS access").end();
+      console.error("Location not specified, please enable GPS access");
     }
   } catch (e) {
-    res.status(404);
+    res.status(500);
     res.send("Error finding experiences using radar: ", e).end();
-    console.log("Error finding experiences using radar: ", e);
+    console.error("Error finding experiences using radar: ", e);
   }
 });
 
@@ -204,7 +212,7 @@ app.get("experiences/lookup", async (req, res) => {
   } catch (e) {
     res.status(404);
     res.send("Error looking up experiences: ", e).end();
-    console.log("Error looking up experiences: ", e);
+    console.error("Error looking up experiences: ", e);
   }
 });
 
