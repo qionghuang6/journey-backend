@@ -12,6 +12,7 @@ import {
   setDoc,
   updateDoc,
   arrayUnion,
+  increment,
 } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { distance, assert } from "./utils.js";
@@ -135,7 +136,6 @@ app.post("/api/user/add", async (req, res, next) => {
     const password = req.body.password;
     const picture = req.body.picture ? req.body.picture : null;
     const friends = req.body.friends ? req.body.friends : null;
-    const doc = doc(db, "user");
     createUserWithEmailAndPassword(auth, email, password)
       .then((userCredential) => {
         // Signed in
@@ -171,7 +171,7 @@ app.post("/api/user/friend/add", async (req, res, next) => {
     const requestedID = req.body.requestedID;
     const friendQuery = query(
       userRef,
-      where("id", "==", [requestedID, requesterID])
+      where("id", "in", [requestedID, requesterID])
     );
     const resultDocs = await getDocs(friendQuery);
     assert(
@@ -386,6 +386,52 @@ app.post("/api/adventures/add", async (req, res, next) => {
   } catch (e) {
     next(e);
     console.error("Error adding adventure: ", e);
+  }
+});
+
+// Need adventureID
+app.post("/api/adventures/like", async (req, res, next) => {
+  try {
+    const adventureId = req.body.id;
+    const adventureQuery = query(userRef, where("id", "==", adventureId));
+    const resultDocs = await getDocs(adventureQuery);
+    assert(
+      Array(resultDocs).length === 1,
+      "Too many adventures returned for a given adventureId"
+    );
+    resultDocs.forEach((doc) => {
+      // doc.data() is never undefined for query doc snapshots
+      updateDoc(doc, {
+        likes: increment(1),
+      });
+      res.status(201).end();
+    });
+  } catch (e) {
+    next(e);
+    console.error("Error liking an adventure: ", e);
+  }
+});
+
+// Need adventureID
+app.post("/api/adventures/unlike", async (req, res, next) => {
+  try {
+    const adventureId = req.body.id;
+    const adventureQuery = query(userRef, where("id", "==", adventureId));
+    const resultDocs = await getDocs(adventureQuery);
+    assert(
+      Array(resultDocs).length === 1,
+      "Too many adventures returned for a given adventureId"
+    );
+    resultDocs.forEach((doc) => {
+      // doc.data() is never undefined for query doc snapshots
+      updateDoc(doc, {
+        likes: increment(-1),
+      });
+      res.status(201).end();
+    });
+  } catch (e) {
+    next(e);
+    console.error("Error unliking an adventure: ", e);
   }
 });
 
