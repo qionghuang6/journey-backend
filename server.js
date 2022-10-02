@@ -152,7 +152,8 @@ app.post("/api/user/add", async (req, res, next) => {
 // Returns: A list of experiences satisfying the conditions
 app.get("/api/experiences/radar", async (req, res, next) => {
   try {
-    const users = req.query.users ? req.query.users : null;
+    const users = Array(req.query.users) ? req.query.users : null;
+    assert(users.length > 0, "Must specify users to query");
     const radius = req.query.radius ? req.query.radius : null;
     const location = req.query.location ? req.query.location : null;
     const target_tag = req.query.tag ? req.query.tag : null;
