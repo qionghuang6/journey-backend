@@ -10,6 +10,8 @@ import {
   Timestamp,
   doc,
   setDoc,
+  updateDoc,
+  arrayUnion,
 } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { distance, assert } from "./utils.js";
@@ -119,32 +121,6 @@ app.post("/api/user/logout", (req, res) => {
     });
 });
 
-// NOT WORKING
-app.post("/api/user/addFriend", async (req, res, next) => {
-  try {
-    const userId = req.body.user;
-    const userQuery = query(userRef, where("id", "==", userId));
-    const resultDocs = await getDocs(userQuery);
-    assert(
-      Array(resultDocs).length === 1,
-      "Too many users returned for a given userId"
-    );
-    if (resultDocs.length != 1) {
-      res.status(500);
-      res.send("Too many users returned for a given userId").end();
-    } else {
-      resultDocs.forEach((doc) => {
-        // doc.data() is never undefined for query doc snapshots
-        res.status(200);
-        res.json(doc.data()).end();
-      });
-    }
-  } catch (e) {
-    next(e);
-    console.error("Error finding user: ", e);
-  }
-});
-
 // Adds a user with the given name and email. Optionally takes a list of friends and a profile picture url
 app.post("/api/user/add", async (req, res, next) => {
   try {
@@ -178,6 +154,37 @@ app.post("/api/user/add", async (req, res, next) => {
   } catch (e) {
     next(e);
     console.error("Error adding user: ", e);
+  }
+});
+
+// Requires a user ID making the request to become friends (requesterID) and a user ID getting requested to become friends (requestedID)
+app.post("/api/user/friend/add", async (req, res, next) => {
+  try {
+    const requesterID = req.body.requesterID;
+    const requestedID = req.body.requestedID;
+    const friendQuery = query(
+      userRef,
+      where("id", "==", [requestedID, requesterID])
+    );
+    const resultDocs = await getDocs(friendQuery);
+    assert(
+      Array(resultDocs).length === 2,
+      "Too many users returned for a given userId"
+    );
+    if (resultDocs.length != 1) {
+      throw new Error("Too many users returned for a given userId friends");
+    } else {
+      resultDocs.forEach((doc) => {
+        // doc.data() is never undefined for query doc snapshots
+        updateDoc(doc, {
+          friends: arrayUnion(requesterID, requestedID),
+        });
+        res.status(201).end();
+      });
+    }
+  } catch (e) {
+    next(e);
+    console.error("Error finding user: ", e);
   }
 });
 
@@ -299,25 +306,25 @@ app.post("/api/experiences/add", async (req, res, next) => {
 
 // Journeys
 
+// Requires a parent adventure ID (returned as the id from the /api/adventures/add endpoint) and an array of picture dataURLs as a json array
 app.post("/api/journeys/add", async (req, res, next) => {
   try {
     const parent = req.body.parent;
-    const id = req.body.id;
-    const likes = 0;
-    const route = req.body.route;
+    const pictures = req.body.pictures;
+    // Distance and time are fluff features, so if we have the time to implement them we can later.
+    //const distance = req.body.distance;
+    //const time = req.body.time;
     const timestamp = Timestamp.now();
     const docRef = await addDoc(
       journeyRef,
       {
-        author: author,
-        id: id,
-        likes: likes,
-        route: route,
+        parent: parent,
+        pictures: pictures,
         timestamp: timestamp,
       },
       { merge: true }
     );
-    console.log("New adventure added with ID: ", docRef.id);
+    console.log("New journey added with ID: ", docRef.id);
     res.status(201).end();
   } catch (e) {
     next(e);
@@ -325,8 +332,28 @@ app.post("/api/journeys/add", async (req, res, next) => {
   }
 });
 
+// Requires a parent adventure ID
+app.get("/api/journeys/lookup", async (req, res, next) => {
+  const parentId = req.query.id;
+  try {
+    const query = query(experienceRef, where("parent", "==", parentId));
+    const resultDocs = await getDocs(query);
+    const result = [];
+    resultDocs.forEach((doc) => {
+      result.push(doc.data);
+    });
+    res.status(200);
+    res.json({ experiences: result }).end();
+    console.log("Journeys successfully looked up with parent id: ", parentId);
+  } catch (e) {
+    next(e);
+    console.error("Error looking up journeys: ", e);
+  }
+});
+
 // Adventures
 
+// Requires an author id, a given id (title for now), and an array of [lng, lat] coordinates for routing
 app.post("/api/adventures/add", async (req, res, next) => {
   try {
     const author = req.body.author;
@@ -355,6 +382,7 @@ app.post("/api/adventures/add", async (req, res, next) => {
   }
 });
 
+// Requires the adventure author id and the adventure id
 app.get("/api/adventures/lookup", async (req, res, next) => {
   try {
     const author = req.query.author;
