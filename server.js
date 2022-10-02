@@ -8,6 +8,7 @@ import {
   where,
   getDocs,
   Timestamp,
+  doc,
 } from "firebase/firestore";
 import { distance, assert } from "./utils.js";
 import express from "express";
@@ -51,21 +52,20 @@ const adventureRef = await collection(db, "adventure");
 
 // Default page
 app.get("/", async (req, res) => {
-  /*const userId = "test";
-  const userQuery = await query(userRef, where("id", "==", userId));
-  const resultDocs = await getDocs(userQuery);
-  assert(
-    Array(resultDocs).length === 1,
-    "Too many users returned for a given userId"
-  );
-  resultDocs.forEach((doc) => {
-    // doc.data() is never undefined for query doc snapshots
-    console.log(doc.id, " => ", doc.data());
+  try {
+    const userId = "test_user";
+    //const userQuery = await query(userRef, where("id", "==", userId));
+    const docRef = doc(db, "user", userId);
+    const resultDoc = await getDoc(docRef);
+    assert(resultDoc.exists(), "DOESNT EXIST");
+    console.log(resultDoc.id, " => ", resultDoc.data());
     res.status(200);
-    res.json(doc.data()).end();
-  });*/
-  const userId = "test2";
-  const userName = "Jod";
+    res.json(resultDoc.data()).end();
+    //const userId = "test2";
+    //const userName = "Jod";
+  } catch (e) {
+    console.log("Error: ", e);
+  }
 });
 
 // Users
@@ -73,12 +73,25 @@ app.get("/", async (req, res) => {
 // Query expected to have a user field with the user's ID.
 // Returns the json object of the user
 app.get("/user/lookup", async (req, res) => {
-  const userId = req.query.user ? req.query.user : null;
-  if (userId === null) {
-    res.status(404);
-    res.send("userId not specified").end();
-  }
   try {
+    const userId = req.query.user;
+    const userQuery = query(userRef, where("id", "==", userId));
+    const resultDoc = await getDocs(userQuery);
+    resultDoc.forEach((doc) => {
+      // doc.data() is never undefined for query doc snapshots
+      res.status(200);
+      res.json(doc.data()).end();
+    });
+  } catch (e) {
+    res.status(404);
+    res.send("Error finding user ", req.query.user, ": ", e).end();
+    console.log("Error finding user ", req.query.user, ": ", e);
+  }
+});
+
+app.post("/user/addFriend", async (req, res) => {
+  try {
+    const userId = req.body.user;
     const userQuery = query(userRef, where("id", "==", userId));
     const resultDocs = await getDocs(userQuery);
     assert(
