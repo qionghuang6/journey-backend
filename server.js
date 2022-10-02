@@ -22,6 +22,7 @@ import cors from "cors";
 // Initialize Express
 const app = express();
 app.use(cors());
+app.use(express.json());
 
 // Initialize firebase connection
 
@@ -223,13 +224,13 @@ app.get("/api/experiences/lookup", async (req, res, next) => {
 // Adds a new experience to the db
 // Requires a location name (for looking up in Google places API later), post id, picture urls, rating, and a tag
 app.post("/api/experiences/add", async (req, res, next) => {
-  const name = req.body.name;
-  const parentId = req.body.parent;
-  const pictures = req.body.pictures;
-  const rating = req.body.rating;
-  const tag = req.body.tag;
-  const timestamp = Timestamp.now();
   try {
+    const name = req.body.name;
+    const parentId = req.body.parent;
+    const pictures = req.body.pictures;
+    const rating = req.body.rating;
+    const tag = req.body.tag;
+    const timestamp = Timestamp.now();
     const docRef = await addDoc(collection(db, "experience"), {
       name: name,
       parent: parentId,
