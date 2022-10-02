@@ -8,7 +8,8 @@ export function distance(pointOne, pointTwo) {
     "Violated preconditions of point distance"
   );
   return (
-    ((pointOne[0] - pointTwo[0]) ** 2 + (pointOne[1] - pointTwo[1]) ** 2) **
+    ((Number(pointOne[0]) - Number(pointTwo[0])) ** 2 +
+      (Number(pointOne[1]) - Number(pointTwo[1])) ** 2) **
     (1 / 2)
   );
 }

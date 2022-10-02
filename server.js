@@ -180,6 +180,7 @@ app.get("experiences/radar", async (req, res) => {
       });
       res.status(200);
       res.json({ experiences: result }).end();
+      console.log("Successfully returned radar query");
     } else {
       res.status(404);
       res.send("Location not specified, please enable GPS access").end();
