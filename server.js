@@ -157,9 +157,9 @@ app.get("/api/experiences/radar", async (req, res, next) => {
       Array.isArray(users) && users.length > 0,
       "Must specify users to query"
     );
-    console.log(Array.isArray(users));
-    const radius = req.query.radius ? req.query.radius : null;
-    const location = req.query.location ? req.query.location : null;
+    const latitude = req.query.latitude ? Number(req.query.latitude) : null;
+    const longitude = req.query.longitude ? Number(req.query.longitude) : null;
+    const radius = req.query.radius ? Number(req.query.radius) : null;
     const target_tag = req.query.tag ? req.query.tag : null;
     // Get all results for the given users
     const radarQuery = query(
@@ -170,13 +170,16 @@ app.get("/api/experiences/radar", async (req, res, next) => {
     const resultDocs = await getDocs(radarQuery);
     const result = [];
     // Filter query results by distance
-    if (location) {
+    if (latitude && longitude) {
       resultDocs.forEach((doc) => {
         // doc.data() is never undefined for query doc snapshots
         const data = doc.data();
         if (
           data.location &&
-          distance(Array(data.location), location) <= radius
+          distance(
+            [data.location._lat, data.location._long],
+            [latitude, longitude]
+          ) <= radius
         ) {
           result.push(data);
         }
