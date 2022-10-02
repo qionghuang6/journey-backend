@@ -212,7 +212,6 @@ app.get("/api/experiences/radar", async (req, res, next) => {
     );
     const latitude = req.query.latitude ? Number(req.query.latitude) : null;
     const longitude = req.query.longitude ? Number(req.query.longitude) : null;
-    console.log("USERS", users);
     const radius = req.query.radius ? Number(req.query.radius) : 0;
     const target_tag = req.query.tag ? req.query.tag : null;
     // Get all results for the given users
