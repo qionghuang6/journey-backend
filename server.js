@@ -152,8 +152,12 @@ app.post("/api/user/add", async (req, res, next) => {
 // Returns: A list of experiences satisfying the conditions
 app.get("/api/experiences/radar", async (req, res, next) => {
   try {
-    const users = Array(req.query.users) ? req.query.users : null;
-    assert(users.length > 0, "Must specify users to query");
+    const users = req.query.users ? Array(req.query.users) : null;
+    assert(
+      Array.isArray(users) && users.length > 0,
+      "Must specify users to query"
+    );
+    console.log(Array.isArray(users));
     const radius = req.query.radius ? req.query.radius : null;
     const location = req.query.location ? req.query.location : null;
     const target_tag = req.query.tag ? req.query.tag : null;
@@ -164,7 +168,7 @@ app.get("/api/experiences/radar", async (req, res, next) => {
       where("user", "in", users)
     );
     const resultDocs = await getDocs(radarQuery);
-    result = [];
+    const result = [];
     // Filter query results by distance
     if (location) {
       resultDocs.forEach((doc) => {
@@ -196,7 +200,7 @@ app.get("/api/experiences/lookup", async (req, res, next) => {
   try {
     const query = query(experienceRef, where("parent", "==", parentId));
     const resultDocs = await getDocs(query);
-    result = [];
+    const result = [];
     resultDocs.forEach((doc) => {
       result.push(doc.data);
     });
