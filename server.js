@@ -73,7 +73,7 @@ app.get("/", async (req, res) => {
 
 // Query expected to have a user field with the user's ID.
 // Returns the json object of the user
-app.get("/user/lookup", async (req, res) => {
+app.get("/api/user/lookup", async (req, res) => {
   try {
     const userId = req.query.user;
     assert(userId, "UserId does not exist");
@@ -91,7 +91,7 @@ app.get("/user/lookup", async (req, res) => {
   }
 });
 
-app.post("/user/addFriend", async (req, res) => {
+app.post("/api/user/addFriend", async (req, res) => {
   try {
     const userId = req.body.user;
     const userQuery = query(userRef, where("id", "==", userId));
@@ -118,7 +118,7 @@ app.post("/user/addFriend", async (req, res) => {
 });
 
 // Adds a user with the given name, id (Google OAUTH ID). Optionally takes a list of friends and a profile picture url
-app.post("/user/add", async (req, res) => {
+app.post("/api/user/add", async (req, res) => {
   try {
     const name = req.body.name;
     const id = req.body.id;
@@ -152,7 +152,7 @@ app.post("/user/add", async (req, res) => {
 // req.query.radius must be > 0 and req.query.location must be a valid location
 // where req.query.tag == the tag requested from the experience
 // Returns: A list of experiences satisfying the conditions
-app.get("experiences/radar", async (req, res) => {
+app.get("/api/experiences/radar", async (req, res) => {
   try {
     const users = req.query.users ? req.query.users : null;
     const radius = req.query.radius ? req.query.radius : null;
@@ -195,7 +195,7 @@ app.get("experiences/radar", async (req, res) => {
 
 // Looks up and returns ALL experiences with the parent id matching the given adventure id
 // Requires a id specifying the adventure id
-app.get("experiences/lookup", async (req, res) => {
+app.get("/api/experiences/lookup", async (req, res) => {
   const parentId = req.query.id;
   try {
     const query = query(experienceRef, where("parent", "==", parentId));
@@ -219,7 +219,7 @@ app.get("experiences/lookup", async (req, res) => {
 
 // Adds a new experience to the db
 // Requires a location name (for looking up in Google places API later), post id, picture urls, rating, and a tag
-app.post("experiences/add", async (req, res) => {
+app.post("/api/experiences/add", async (req, res) => {
   const name = req.body.name;
   const parentId = req.body.parent;
   const pictures = req.body.pictures;
