@@ -454,9 +454,11 @@ app.get("/api/adventures/getall", async (req, res, next) => {
     resultDoc.forEach((doc) => {
       // doc.data() is never undefined for query doc snapshots
       console.log("Adventure retrieved with id", doc.id);
-      res.status(200);
-      res.json({ data: doc.data(), id: doc.id });
+      results.push({ data: doc.data(), id: doc.id });
     });
+    res.status(200);
+    console.log("Retrieved all adventures!");
+    res.json({ experiences: results }).end();
   } catch (e) {
     next(e);
     console.error("Error getting all adventures: ", e);
