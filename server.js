@@ -78,13 +78,19 @@ app.get("/", async (req, res, next) => {
 
 // Users
 
-// Query expected to have a user field with the user's ID.
+// Query expected to have a user field with the user's ID or email.
 // Returns the json object of the user
 app.get("/api/user/lookup", async (req, res, next) => {
   try {
-    const userId = req.query.user;
-    assert(userId, "UserId does not exist");
-    const userQuery = query(userRef, where("id", "==", userId));
+    const userId = req.query.user ? req.query.user : null;
+    const email = req.query.email ? req.query.email : null;
+    assert(userId != null || email != null, "UserID and email aren't defined");
+    let userQuery;
+    if (userId === null) {
+      userQuery = query(userRef, where("email", "==", email));
+    } else {
+      userQuery = query(userRef, where("id", "==", userId));
+    }
     const resultDoc = await getDocs(userQuery);
     resultDoc.forEach((doc) => {
       // doc.data() is never undefined for query doc snapshots
