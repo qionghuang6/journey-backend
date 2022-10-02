@@ -15,6 +15,11 @@ import { getStorage } from "firebase/storage";
 import { distance, assert } from "./utils.js";
 import express from "express";
 import cors from "cors";
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+} from "firebase/auth";
 
 // Initialize Express
 const app = express();
@@ -41,7 +46,7 @@ const firebaseApp = await initializeApp(firebaseConfig);
 
 // Initialize Cloud Firestore and get a reference to the service
 const db = await getFirestore(firebaseApp);
-//const storage = await getStorage(firebaseApp);
+const auth = await getAuth();
 
 // Different tables
 const userRef = await collection(db, "user");
@@ -90,6 +95,30 @@ app.get("/api/user/lookup", async (req, res, next) => {
   }
 });
 
+app.post("/api/user/login", (req, res) => {
+  signInWithEmailAndPassword(auth, req.body.email, req.body.password)
+    .then((userCredential) => {
+      // Signed in
+      res.status(201).end();
+    })
+    .catch((error) => {
+      const errorMessage = error.message;
+      throw new Error(errorMessage);
+    });
+});
+
+app.post("/api/user/logout", (req, res) => {
+  signOut(auth)
+    .then(() => {
+      // Sign-out successful.
+      res.status(201).end();
+    })
+    .catch((error) => {
+      // An error happened.
+      throw new Error(error);
+    });
+});
+
 // NOT WORKING
 app.post("/api/user/addFriend", async (req, res, next) => {
   try {
@@ -116,28 +145,36 @@ app.post("/api/user/addFriend", async (req, res, next) => {
   }
 });
 
-// Adds a user with the given name, id (Google OAUTH ID). Optionally takes a list of friends and a profile picture url
+// Adds a user with the given name and email. Optionally takes a list of friends and a profile picture url
 app.post("/api/user/add", async (req, res, next) => {
   try {
     const name = req.body.name;
-    const id = req.body.id;
+    const email = req.body.email;
     const picture = req.body.picture ? req.body.picture : null;
     const friends = req.body.friends ? req.body.friends : null;
     const doc = doc(db, "user");
-    const docRef = await addDoc(
-      userRef,
-      {
-        name: name,
-        id: id,
-        picture: picture,
-        friends: friends,
-      },
-      { merge: true }
-    );
-    console.log("New user added with ID: ", docRef.id);
-    res.status(201);
-    res.setHeader("Content-Type", "application/json");
-    res.send(JSON.stringify({ id: docRef.id })).end();
+    createUserWithEmailAndPassword(auth, email, password)
+      .then((userCredential) => {
+        // Signed in
+        const user = userCredential.user;
+        const docRef = addDoc(
+          userRef,
+          {
+            name: name,
+            email: user.email,
+            picture: picture,
+            friends: friends,
+          },
+          { merge: true }
+        );
+        console.log("New user added with ID: ", docRef.id);
+        res.status(201);
+        res.setHeader("Content-Type", "application/json");
+        res.send(JSON.stringify({ id: docRef.id })).end();
+      })
+      .catch((error) => {
+        throw new Error(error);
+      });
   } catch (e) {
     next(e);
     console.error("Error adding user: ", e);
