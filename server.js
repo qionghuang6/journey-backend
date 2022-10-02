@@ -11,13 +11,10 @@ import {
   doc,
   setDoc,
 } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 import { distance, assert } from "./utils.js";
 import express from "express";
 import cors from "cors";
-
-// Add Express
-//const express = require("express");
-//var cors = require("cors");
 
 // Initialize Express
 const app = express();
@@ -44,6 +41,7 @@ const firebaseApp = await initializeApp(firebaseConfig);
 
 // Initialize Cloud Firestore and get a reference to the service
 const db = await getFirestore(firebaseApp);
+//const storage = await getStorage(firebaseApp);
 
 // Different tables
 const userRef = await collection(db, "user");
@@ -137,7 +135,9 @@ app.post("/api/user/add", async (req, res, next) => {
       { merge: true }
     );
     console.log("New user added with ID: ", docRef.id);
-    res.status(200).end();
+    res.status(201);
+    res.setHeader("Content-Type", "application/json");
+    res.send(JSON.stringify({ id: docRef.id })).end();
   } catch (e) {
     next(e);
     console.error("Error adding user: ", e);
@@ -166,7 +166,7 @@ app.get("/api/experiences/radar", async (req, res, next) => {
     // Get all results for the given users
     const radarQuery = query(
       experienceRef,
-      where("tag", "==", target_tag),
+      where("tag", "==", target_tag)
       // where("user", "array-contains-any", users)
     );
     const resultDocs = await getDocs(radarQuery);
@@ -230,24 +230,30 @@ app.post("/api/experiences/add", async (req, res, next) => {
   try {
     const name = req.body.name;
     const parentId = req.body.parent;
-    // const pictures = req.body.pictures;
+    const pictures = req.body.pictures;
     const latitude = req.body.latitude;
     const longitude = req.body.longitude;
     const rating = req.body.rating;
     const tag = req.body.tag;
     const timestamp = Timestamp.now();
-    const docRef = await addDoc(collection(db, "experience"), {
-      name: name,
-      parent: parentId,
-      // pictures: pictures,
-      latitude: latitude,
-      longitude: longitude,
-      rating: rating,
-      tag: tag,
-      timestamp: timestamp,
-    });
+    const docRef = await addDoc(
+      experienceRef,
+      {
+        name: name,
+        parent: parentId,
+        pictures: pictures,
+        latitude: latitude,
+        longitude: longitude,
+        rating: rating,
+        tag: tag,
+        timestamp: timestamp,
+      },
+      { merge: true }
+    );
     console.log("New experience added with ID: ", docRef.id);
-    res.status(200).end();
+    res.status(201);
+    res.setHeader("Content-Type", "application/json");
+    res.send(JSON.stringify({ id: docRef.id })).end();
   } catch (e) {
     next(e);
     console.error("Error adding experience: ", e);
@@ -256,7 +262,82 @@ app.post("/api/experiences/add", async (req, res, next) => {
 
 // Journeys
 
+app.post("/api/journeys/add", async (req, res, next) => {
+  try {
+    const parent = req.body.parent;
+    const id = req.body.id;
+    const likes = 0;
+    const route = req.body.route;
+    const timestamp = Timestamp.now();
+    const docRef = await addDoc(
+      journeyRef,
+      {
+        author: author,
+        id: id,
+        likes: likes,
+        route: route,
+        timestamp: timestamp,
+      },
+      { merge: true }
+    );
+    console.log("New adventure added with ID: ", docRef.id);
+    res.status(201).end();
+  } catch (e) {
+    next(e);
+    console.error("Error adding adventure: ", e);
+  }
+});
+
 // Adventures
+
+app.post("/api/adventures/add", async (req, res, next) => {
+  try {
+    const author = req.body.author;
+    const id = req.body.id;
+    const likes = 0;
+    const route = req.body.route;
+    const timestamp = Timestamp.now();
+    const docRef = await addDoc(
+      adventureRef,
+      {
+        author: author,
+        id: id,
+        likes: likes,
+        route: route,
+        timestamp: timestamp,
+      },
+      { merge: true }
+    );
+    console.log("New adventure added with ID: ", docRef.id);
+    res.status(201);
+    res.setHeader("Content-Type", "application/json");
+    res.send(JSON.stringify({ id: docRef.id })).end();
+  } catch (e) {
+    next(e);
+    console.error("Error adding adventure: ", e);
+  }
+});
+
+app.get("/api/adventures/lookup", async (req, res, next) => {
+  try {
+    const author = req.query.author;
+    const id = req.query.id;
+    const resultDoc = await getDocs(
+      adventureRef,
+      where("author", "==", author),
+      where("id", "==", id)
+    );
+    resultDoc.forEach((doc) => {
+      // doc.data() is never undefined for query doc snapshots
+      console.log("Adventure retrieved with id", doc.id);
+      res.status(200);
+      res.json(doc.data()).end();
+    });
+  } catch (e) {
+    next(e);
+    console.error("Error getting adventure: ", e);
+  }
+});
 
 // Initialize server
 app.listen(3001, () => {
