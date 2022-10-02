@@ -159,7 +159,7 @@ app.get("/api/experiences/radar", async (req, res, next) => {
     );
     const latitude = req.query.latitude ? Number(req.query.latitude) : null;
     const longitude = req.query.longitude ? Number(req.query.longitude) : null;
-    const radius = req.query.radius ? Number(req.query.radius) : null;
+    const radius = req.query.radius ? Number(req.query.radius) : 0;
     const target_tag = req.query.tag ? req.query.tag : null;
     // Get all results for the given users
     const radarQuery = query(
@@ -175,11 +175,12 @@ app.get("/api/experiences/radar", async (req, res, next) => {
         // doc.data() is never undefined for query doc snapshots
         const data = doc.data();
         if (
-          data.location &&
-          distance(
-            [data.location._lat, data.location._long],
-            [latitude, longitude]
-          ) <= radius
+          radius === 0 ||
+          (data.location &&
+            distance(
+              [data.location._lat, data.location._long],
+              [latitude, longitude]
+            ) <= radius)
         ) {
           result.push(data);
         }
