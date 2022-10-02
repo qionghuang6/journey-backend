@@ -205,11 +205,6 @@ app.post("/api/user/friend/add", async (req, res, next) => {
 // Returns: A list of experiences satisfying the conditions
 app.get("/api/experiences/radar", async (req, res, next) => {
   try {
-    const users = req.query.users ? Array(req.query.users) : null;
-    assert(
-      Array.isArray(users) && users.length > 0,
-      "Must specify users to query"
-    );
     const latitude = req.query.latitude ? Number(req.query.latitude) : null;
     const longitude = req.query.longitude ? Number(req.query.longitude) : null;
     const radius = req.query.radius ? Number(req.query.radius) : 0;
