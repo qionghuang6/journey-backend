@@ -111,7 +111,7 @@ app.post("/api/user/login", (req, res) => {
     })
     .catch((error) => {
       const errorMessage = error.message;
-      throw new Error(errorMessage);
+      console.error(errorMessage);
     });
 });
 
@@ -123,7 +123,7 @@ app.post("/api/user/logout", (req, res) => {
     })
     .catch((error) => {
       // An error happened.
-      throw new Error(error);
+      console.error(error);
     });
 });
 
